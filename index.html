@@ -9,8 +9,17 @@
 <meta property="og:type" content="website">
 <meta property="og:title" content="Sózdik 3000 — тренажёр английских слов">
 <meta property="og:description" content="3000 самых важных английских слов с переводом на казахский и русский. Карточки, тесты, ввод, интервальное повторение — бесплатно и в любом браузере.">
-<meta property="og:image" content="icons/icon-512.png">
-<meta name="twitter:card" content="summary">
+<!-- Превью в Telegram/WhatsApp/VK: краулеры не резолвят относительные пути — только абсолютный URL -->
+<meta property="og:url" content="https://mqalybek.github.io/Sozdik3000/">
+<meta property="og:site_name" content="Sózdik 3000">
+<meta property="og:locale" content="kk_KZ">
+<meta property="og:locale:alternate" content="ru_RU">
+<meta property="og:image" content="https://mqalybek.github.io/Sozdik3000/icons/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Sózdik 3000 — словарная статья: language — тіл — язык">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://mqalybek.github.io/Sozdik3000/">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="manifest" href="manifest.json">
@@ -82,7 +91,7 @@
       </div>
     </div>
   </div>
-  <button class="intro-skip" onclick="dismissIntro()" aria-label="Пропустить">Пропустить ✕</button>
+  <button class="intro-skip" onclick="dismissIntro()" data-i18n="btn_intro_skip">Пропустить ✕</button>
 </div>
 
 <header>
@@ -109,7 +118,7 @@
       <div class="hstat-label" data-i18n="header_progress">Прогресс</div>
     </div>
     <div class="hstat">
-      <div class="hstat-val" style="color:var(--amber)" id="hs-streak">0🔥</div>
+      <div class="hstat-val" style="color:var(--amber-text)" id="hs-streak">0🔥</div>
       <div class="hstat-label" data-i18n="header_streak">Дней подряд</div>
     </div>
   </div>
@@ -168,7 +177,7 @@
     </button>
     <div class="ls-time" id="ls-time"></div>
 
-    <div class="seg-group" role="tablist" aria-label="Режим тренировки">
+    <div class="seg-group" role="tablist" aria-label="Режим тренировки" data-i18n-aria="aria_mode">
       <button class="seg active" onclick="setMode('flash')" id="tab-flash" role="tab" aria-selected="true">
         <span class="btn-ic" data-ic="flash"></span><span data-i18n="tab_flash_short">Карточки</span>
       </button>
@@ -182,7 +191,7 @@
 
     <div class="ls-foot">
       <span class="ls-scope" id="ls-scope"></span>
-      <button class="ghost-btn" onclick="openSheet()" aria-label="Открыть настройки">
+      <button class="ghost-btn" onclick="openSheet()">
         <span class="btn-ic" data-ic="settings"></span><span class="btn-tx" data-i18n="btn_settings">Настройки</span>
       </button>
     </div>
@@ -190,7 +199,7 @@
 
   <!-- Полоса занятия: видна только во время урока -->
   <div class="lesson-bar" id="lesson-bar" hidden>
-    <button class="lb-exit" onclick="endSession(false)" id="lb-exit" aria-label="Завершить урок">
+    <button class="lb-exit" onclick="endSession(false)" id="lb-exit" aria-label="Завершить урок" data-i18n-aria="aria_exit">
       <span class="btn-ic" data-ic="close"></span>
     </button>
     <div class="lb-track"><div class="lb-fill" id="lb-fill"></div></div>
@@ -206,7 +215,7 @@
 <aside class="sheet" id="sheet" hidden role="dialog" aria-modal="true" aria-labelledby="sheet-title">
   <div class="sheet-head">
     <h2 class="sheet-title" id="sheet-title" data-i18n="btn_settings">Настройки</h2>
-    <button class="ghost-btn icon-only" onclick="closeSheet()" aria-label="Закрыть">
+    <button class="ghost-btn icon-only" onclick="closeSheet()" aria-label="Закрыть" data-i18n-aria="aria_close">
       <span class="btn-ic" data-ic="close"></span>
     </button>
   </div>
@@ -219,24 +228,6 @@
         <button class="lvl-btn active-A2" id="lbtn-A2" onclick="toggleLevel('A2')">A2</button>
         <button class="lvl-btn active-B1" id="lbtn-B1" onclick="toggleLevel('B1')">B1</button>
         <button class="lvl-btn active-B2" id="lbtn-B2" onclick="toggleLevel('B2')">B2</button>
-      </div>
-    </div>
-
-    <div class="sheet-sec">
-      <div class="sheet-lbl" data-i18n="lbl_cat">Категории</div>
-      <div class="chip-row" id="cat-filters">
-        <button class="cat-btn active" id="cbtn-cat_core" onclick="toggleCat('cat_core')"><span class="btn-ic" data-ic="core"></span><span data-i18n="cat_core">Негізгі</span></button>
-        <button class="cat-btn active" id="cbtn-cat_people" onclick="toggleCat('cat_people')"><span class="btn-ic" data-ic="people"></span><span data-i18n="cat_people">Адамдар</span></button>
-        <button class="cat-btn active" id="cbtn-cat_home" onclick="toggleCat('cat_home')"><span class="btn-ic" data-ic="home"></span><span data-i18n="cat_home">Үй</span></button>
-        <button class="cat-btn active" id="cbtn-cat_edu" onclick="toggleCat('cat_edu')"><span class="btn-ic" data-ic="edu"></span><span data-i18n="cat_edu">Білім</span></button>
-        <button class="cat-btn active" id="cbtn-cat_travel" onclick="toggleCat('cat_travel')"><span class="btn-ic" data-ic="travel"></span><span data-i18n="cat_travel">Саяхат</span></button>
-        <button class="cat-btn active" id="cbtn-cat_food" onclick="toggleCat('cat_food')"><span class="btn-ic" data-ic="food"></span><span data-i18n="cat_food">Тамақ</span></button>
-        <button class="cat-btn active" id="cbtn-cat_health" onclick="toggleCat('cat_health')"><span class="btn-ic" data-ic="health"></span><span data-i18n="cat_health">Денсаулық</span></button>
-        <button class="cat-btn active" id="cbtn-cat_nature" onclick="toggleCat('cat_nature')"><span class="btn-ic" data-ic="nature"></span><span data-i18n="cat_nature">Табиғат</span></button>
-        <button class="cat-btn active" id="cbtn-cat_business" onclick="toggleCat('cat_business')"><span class="btn-ic" data-ic="business"></span><span data-i18n="cat_business">Бизнес</span></button>
-        <button class="cat-btn active" id="cbtn-cat_tech" onclick="toggleCat('cat_tech')"><span class="btn-ic" data-ic="tech"></span><span data-i18n="cat_tech">IT</span></button>
-        <button class="cat-btn active" id="cbtn-cat_art" onclick="toggleCat('cat_art')"><span class="btn-ic" data-ic="art"></span><span data-i18n="cat_art">Өнер</span></button>
-        <button class="cat-btn active" id="cbtn-cat_sport" onclick="toggleCat('cat_sport')"><span class="btn-ic" data-ic="sport"></span><span data-i18n="cat_sport">Спорт</span></button>
       </div>
     </div>
 
@@ -257,16 +248,16 @@
         </span>
       </div>
       <div class="chip-row" style="margin-top:10px">
-        <button class="shuffle-btn" onclick="toggleSound()" id="sound-btn" aria-label="Звук"><span class="btn-ic" data-ic="sound"></span><span class="btn-tx"></span></button>
-        <button class="shuffle-btn" onclick="toggleTimer()" id="timer-btn" aria-label="Таймер"><span class="btn-ic" data-ic="timer"></span><span class="btn-tx"></span></button>
+        <button class="shuffle-btn" onclick="toggleSound()" id="sound-btn"><span class="btn-ic" data-ic="sound"></span><span class="btn-tx"></span></button>
+        <button class="shuffle-btn" onclick="toggleTimer()" id="timer-btn"><span class="btn-ic" data-ic="timer"></span><span class="btn-tx"></span></button>
       </div>
     </div>
 
     <div class="sheet-sec">
       <div class="sheet-lbl" data-i18n="lbl_stats">Статистика</div>
       <div class="chip-row">
-        <button class="shuffle-btn" onclick="toggleGraph()" id="graph-btn" aria-label="График прогресса"><span class="btn-ic" data-ic="graph"></span><span class="btn-tx"></span></button>
-        <button class="shuffle-btn" onclick="toggleSrsStats()" id="srs-stats-btn" aria-label="SRS статистика"><span class="btn-ic" data-ic="srs"></span><span class="btn-tx"></span></button>
+        <button class="shuffle-btn" onclick="toggleGraph()" id="graph-btn"><span class="btn-ic" data-ic="graph"></span><span class="btn-tx"></span></button>
+        <button class="shuffle-btn" onclick="toggleSrsStats()" id="srs-stats-btn"><span class="btn-ic" data-ic="srs"></span><span class="btn-tx"></span></button>
       </div>
       <div id="srs-stats-area" class="panel-area" hidden></div>
       <div id="graph-area" class="panel-area" hidden>
@@ -279,13 +270,13 @@
     <div class="sheet-sec">
       <div class="sheet-lbl" data-i18n="lbl_data">Данные</div>
       <div class="chip-row">
-        <button class="shuffle-btn" onclick="shareCard()" aria-label="Поделиться"><span class="btn-ic" data-ic="share"></span><span class="btn-tx" data-i18n="btn_share">Поделиться</span></button>
-        <button class="shuffle-btn" onclick="exportProgress()" aria-label="Экспорт прогресса"><span class="btn-ic" data-ic="export"></span><span class="btn-tx" data-i18n="btn_export">Экспорт</span></button>
-        <button class="shuffle-btn" onclick="document.getElementById('import-file').click()" aria-label="Импорт прогресса"><span class="btn-ic" data-ic="import"></span><span class="btn-tx" data-i18n="btn_import">Импорт</span></button>
+        <button class="shuffle-btn" onclick="shareCard()"><span class="btn-ic" data-ic="share"></span><span class="btn-tx" data-i18n="btn_share">Поделиться</span></button>
+        <button class="shuffle-btn" onclick="exportProgress()"><span class="btn-ic" data-ic="export"></span><span class="btn-tx" data-i18n="btn_export">Экспорт</span></button>
+        <button class="shuffle-btn" onclick="document.getElementById('import-file').click()"><span class="btn-ic" data-ic="import"></span><span class="btn-tx" data-i18n="btn_import">Импорт</span></button>
         <input type="file" id="import-file" accept="application/json,.json" style="display:none" onchange="importProgress(this)">
       </div>
       <div class="chip-row" style="margin-top:8px">
-        <button class="shuffle-btn btn-danger" onclick="resetProgress()" aria-label="Сбросить прогресс"><span class="btn-ic" data-ic="reset"></span><span class="btn-tx" data-i18n="btn_reset">Сбросить прогресс</span></button>
+        <button class="shuffle-btn btn-danger" onclick="resetProgress()"><span class="btn-ic" data-ic="reset"></span><span class="btn-tx" data-i18n="btn_reset">Сбросить прогресс</span></button>
       </div>
     </div>
 
@@ -295,7 +286,7 @@
 <footer>
   <p><strong>Sózdik 3000</strong> · <span data-i18n="footer_title">3000 самых важных английских слов · Қазақша / Русский</span></p>
   <p style="margin-top:6px;font-size:12px" data-i18n="footer_desc">Делись с друзьями — открывается в любом браузере</p>
-  <button class="intro-replay" onclick="playIntro()" aria-label="Показать заставку"><span class="btn-ic" data-ic="play"></span><span data-i18n="btn_intro">Заставка</span></button>
+  <button class="intro-replay" onclick="playIntro()"><span class="btn-ic" data-ic="play"></span><span data-i18n="btn_intro">Заставка</span></button>
 </footer>
 
 <script src="data.js"></script>

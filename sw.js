@@ -1,6 +1,6 @@
 // Service worker: офлайн-режим через кэширование оболочки приложения.
 // При изменении любого файла поднимите версию кэша.
-const CACHE = 'sozdik3000-v15';
+const CACHE = 'sozdik3000-v16';
 const ASSETS = [
   './',
   './index.html',
@@ -10,7 +10,8 @@ const ASSETS = [
   './favicon.svg',
   './manifest.json',
   './icons/icon-192.png',
-  './icons/icon-512.png'
+  './icons/icon-512.png',
+  './icons/icon-maskable-512.png'
 ];
 
 self.addEventListener('install', e => {
