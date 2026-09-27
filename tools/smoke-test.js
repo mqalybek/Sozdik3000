@@ -112,7 +112,9 @@ function check(name, cond, extra) {
   check('пустой ввод не засчитывается', !(await page.evaluate(() => isAnswerCorrect('', 'слово'))));
 
   console.log('— Повторение (review)');
-  await page.evaluate(() => { endSession(); setMode('review'); });
+  // Слово на повторение задаём явно: иначе оно могло случайно попасться
+  // первой карточкой в уроках теста/ввода выше, получить верный ответ — и тест «плавал»
+  await page.evaluate(() => { endSession(); srsWrong(WORDS[0][0]); setMode('review'); });
   await page.waitForTimeout(150);
   const reviewLen = await page.evaluate(() => reviewDeck.length);
   check('колода повторения не пуста', reviewLen >= 1, reviewLen);
@@ -137,20 +139,25 @@ function check(name, cond, extra) {
 
   console.log('— Интервальное повторение (SRS)');
   const srsCheck = await page.evaluate(() => {
-    const today = todayKey();
+    // Ожидаемые даты считаем НЕЗАВИСИМО от addDays/todayKey: раньше тест сравнивал
+    // addDays с самим собой и не видел, что к востоку от UTC «+1 день» = сегодня
+    const local = n => { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() + n);
+      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
     srs = {}; known = new Set();
+    const todayOk = todayKey() === local(0);
     // Правильный ответ продвигает по коробкам с растущими интервалами
     srsCorrect('test');
-    const b1 = srs['test'].box === 1 && srs['test'].due === addDays(today, 1);
+    const b1 = srs['test'].box === 1 && srs['test'].due === local(1);
     srsCorrect('test');
-    const b2 = srs['test'].box === 2 && srs['test'].due === addDays(today, 3);
+    const b2 = srs['test'].box === 2 && srs['test'].due === local(3);
     srsCorrect('test'); srsCorrect('test'); srsCorrect('test'); srsCorrect('test');
-    const cap = srs['test'].box === 5 && srs['test'].due === addDays(today, 30);
+    const cap = srs['test'].box === 5 && srs['test'].due === local(30);
     // Ошибка сбрасывает в коробку 0, слово доступно сразу
     srsWrong('test');
-    const reset = srs['test'].box === 0 && srs['test'].due === today && !known.has('test');
-    return { b1, b2, cap, reset };
+    const reset = srs['test'].box === 0 && srs['test'].due === local(0) && !known.has('test');
+    return { todayOk, b1, b2, cap, reset };
   });
+  check('«сегодня» — по местному календарю', srsCheck.todayOk);
   check('коробка 1 → повтор через 1 день', srsCheck.b1);
   check('коробка 2 → повтор через 3 дня', srsCheck.b2);
   check('потолок: коробка 5, 30 дней', srsCheck.cap);
@@ -164,6 +171,24 @@ function check(name, cond, extra) {
     return reviewDeck.length === 1 && reviewDeck[0][0] === WORDS[1][0];
   });
   check('в повторение попадают только наступившие сроки', futureCheck);
+
+  console.log('— Часовые пояса (регрессия: даты считались в UTC)');
+  for (const tz of ['Asia/Almaty', 'America/New_York']) {
+    const tzCtx = await browser.newContext({ timezoneId: tz });
+    const tzPage = await tzCtx.newPage();
+    tzPage.on('pageerror', e => errors.push(String(e)));
+    await tzPage.addInitScript(() => { try { localStorage.setItem('ox_intro_seen', '1'); } catch(e) {} });
+    await tzPage.goto(URL);
+    await tzPage.waitForTimeout(200);
+    const r = await tzPage.evaluate(() => {
+      const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() + 1);
+      const tomorrow = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      startSession(); const w = getCard(); flipCard(); markKnown(); endSession();
+      return { due: srs[w[0]].due, tomorrow, notDueToday: !planSession().due.some(x => x[0] === w[0]) };
+    });
+    check(`${tz}: «знаю» → повтор завтра, а не сегодня`, r.due === r.tomorrow && r.notDueToday, JSON.stringify(r));
+    await tzCtx.close();
+  }
 
   console.log('— Миграция прогресса v1');
   const migCheck = await page.evaluate(() => {
@@ -200,6 +225,50 @@ function check(name, cond, extra) {
   await page.waitForTimeout(300);
   check('язык сохранился после перезагрузки', await page.evaluate(() => appLang === 'ru'));
   check('прогресс (SRS) сохранился', await page.evaluate(() => known.has('apple') && srs['banana'] && srs['banana'].box === 0));
+
+  console.log('— Структура: урок первым для постоянных');
+  check('с прогрессом hero скрыт, урок первым', await page.evaluate(() =>
+    document.body.classList.contains('returning') && document.querySelector('.hero').offsetParent === null
+    && !document.getElementById('lesson-start').hidden));
+
+  console.log('— Урок: логика');
+  const ll = await page.evaluate(() => {
+    localStorage.removeItem('ox_history'); localStorage.removeItem('ox_progress');
+    srs = {}; known = new Set(); setDailyGoal(10);
+    // Всё «не знаю»: следующий урок не добавляет новых слов поверх повторений
+    startSession(); let g = 0;
+    while(idx < sessionDeck.length && g++ < 100) { if(!flipped) flipCard(); markRepeat(); }
+    endSession();
+    const plan2 = planSession();
+    // Ошибка возвращается в этот же урок через REQUEUE_GAP карточек
+    startSession();
+    const first = getCard()[0]; flipCard(); markRepeat();
+    const back = sessionDeck.findIndex((w, i) => i > 0 && w[0] === first);
+    endSession();
+    // Варианты теста: 4 разных ответа; та же часть речи, если таких слов хватает
+    let bad = 0;
+    for(let t = 0; t < 300; t++) {
+      const w = WORDS[(t * 37) % WORDS.length], o = getRandomOpts(w, 4);
+      const samePosAvail = WORDS.filter(x => x !== w && primaryPos(x) === primaryPos(w)).length >= 3;
+      if(o.length !== 4 || new Set(o.map(x => x[3])).size !== 4) bad++;
+      else if(samePosAvail && !o.every(x => primaryPos(x) === primaryPos(w))) bad++;
+    }
+    return { fresh: plan2.fresh.length, due: plan2.due.length, back, bad };
+  });
+  check('после ошибок новые слова не добавляются', ll.fresh === 0, JSON.stringify(ll));
+  check('слова с ошибками ждут повторения', ll.due === 10, JSON.stringify(ll));
+  check('ошибка возвращается через 3 карточки', ll.back === 4, JSON.stringify(ll));
+  check('варианты теста: та же часть речи, без повторов', ll.bad === 0, JSON.stringify(ll));
+
+  console.log('— Структура: новичок');
+  await page.evaluate(() => { localStorage.removeItem('ox_progress'); localStorage.removeItem('ox_history'); });
+  await page.reload();
+  await page.waitForTimeout(300);
+  check('без прогресса hero показан', await page.evaluate(() => document.querySelector('.hero').offsetParent !== null));
+  await page.click('.hero-cta');
+  await page.waitForTimeout(150);
+  check('кнопка hero начинает урок', await page.evaluate(() => sessionActive));
+  check('во время урока hero скрыт', await page.evaluate(() => document.querySelector('.hero').offsetParent === null));
   check('нет JS-ошибок в конце', errors.length === 0, errors[0]);
 
   await browser.close();

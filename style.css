@@ -337,17 +337,15 @@ header {
   .hero-cta:hover { transform: translateY(-2px); background: var(--indigo-deep); box-shadow: 0 16px 30px -14px rgba(46,79,107,0.8); }
 }
 .hero-cta:active { transform: scale(.97); }
-.hero-chips { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-top: 28px; }
+.hero-chips { display: flex; justify-content: center; gap: 4px 14px; flex-wrap: wrap; margin-top: 24px; }
+/* Легенда уровней: справка, а не кнопки — поэтому без рамки и фона */
 .chip {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 5px 13px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--rule-strong);
+  padding: 3px 6px;
   font-size: 13px;
   color: var(--ink-soft);
-  background: var(--paper-raised);
 }
 .chip-dot { width: 7px; height: 7px; border-radius: 2px; }
 
@@ -497,6 +495,14 @@ header {
    ПРИЛОЖЕНИЕ
    ============================================================ */
 .app-container { position: relative; z-index: 1; max-width: 760px; margin: 0 auto; padding: 0 20px 80px; }
+
+/* Постоянному пользователю и во время урока лендинг не нужен */
+.returning .hero, .in-lesson .hero { display: none; }
+.returning .app-container, .in-lesson .app-container { padding-top: 28px; }
+@media (max-width: 600px) {
+  /* во время урока счётчики шапки — лишние 12% экрана: прогресс виден в полосе урока */
+  .in-lesson .header-stats { display: none; }
+}
 
 /* ============================================================
    ЭКРАН СТАРТА ЗАНЯТИЯ

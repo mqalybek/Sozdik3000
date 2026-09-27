@@ -26,6 +26,11 @@ let sessionActive = false;
 let sessionDeck = [];
 let sessionPlan = { fresh: [], due: [] };
 let sessionNewLearned = 0;  // сколько новых слов закрыто за этот урок
+let sessionFresh = new Set();     // слова, которые в начале урока были новыми
+let sessionCounted = new Set();   // новые слова, уже засчитанные в итог урока
+let sessionRequeues = new Map();  // слово → сколько раз его вернули в урок
+const REQUEUE_GAP = 3;   // слово с ошибкой возвращается через столько карточек
+const REQUEUE_MAX = 2;   // и не больше стольких раз за урок
 
 const UI_TEXT = {
   header_words: { ru: 'Слов', kz: 'Сөздер' },
@@ -33,8 +38,8 @@ const UI_TEXT = {
   header_progress: { ru: 'Прогресс', kz: 'Прогресс' },
   header_streak: { ru: 'Дней подряд', kz: 'Қатарынан күн' },
   hero_title: { ru: 'Выучи английский<br>раз и навсегда', kz: 'Ағылшын тілін<br>біржолата үйреніңіз' },
-  hero_subtitle: { ru: '3000 самых важных английских слов с переводом на казахский и русский. Карточки, тест, ввод, повторение — четыре режима тренировки.', kz: 'Ағылшын тілінің ең маңызды 3000 сөзі қазақша аудармасымен. Карталар, тест, жазу, қайталау — 4 жаттығу режимі.' },
-  btn_start: { ru: 'Начать тренировку →', kz: 'Жаттығуды бастау →' },
+  hero_subtitle: { ru: '3000 самых важных английских слов с переводом на казахский и русский. Короткий урок каждый день: карточки, тест или ввод — и интервальное повторение.', kz: 'Ағылшын тілінің ең маңызды 3000 сөзі қазақша және орысша аудармасымен. Күн сайын қысқа сабақ: карталар, тест немесе жазу — және аралықпен қайталау.' },
+  btn_start: { ru: 'Начать урок →', kz: 'Сабақты бастау →' },
   lvl_a1: { ru: 'A1 — Начальный', kz: 'A1 — Бастапқы' },
   lvl_a2: { ru: 'A2 — Элементарный', kz: 'A2 — Қарапайым' },
   lvl_b1: { ru: 'B1 — Средний', kz: 'B1 — Орташа' },
@@ -306,7 +311,13 @@ function setDailyGoal(v) {
 }
 
 // ===== СОХРАНЕНИЕ / ЗАГРУЗКА ПРОГРЕССА =====
-function todayKey() { return new Date().toISOString().slice(0,10); }
+// Календарная дата по МЕСТНОМУ времени (YYYY-MM-DD).
+// toISOString() считает в UTC: к востоку от Гринвича (Казахстан, UTC+5)
+// сутки начинались в 05:00, а «через день» превращалось в «сегодня».
+function dateKey(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function todayKey() { return dateKey(new Date()); }
 
 function loadHistory() {
   try { return JSON.parse(localStorage.getItem('ox_history') || '[]'); }
@@ -343,6 +354,22 @@ function bumpLearnedToday() {
   }
 }
 
+// Показанные сегодня новые слова: ответ дан хотя бы раз, верно или нет
+function bumpIntroducedToday() {
+  const today = todayKey();
+  let history = migrateHistory(loadHistory());
+  let entry = history.find(e => e.date === today);
+  if(!entry) { entry = { date: today, known: known.size, learned: 0 }; history.push(entry); }
+  entry.introduced = (entry.introduced || 0) + 1;
+  if(history.length > 60) history = history.slice(-60);
+  localStorage.setItem('ox_history', JSON.stringify(history));
+}
+function introducedToday() {
+  const entry = migrateHistory(loadHistory()).find(e => e.date === todayKey());
+  // в записях до этого изменения поля нет, но выученные слова тоже были показаны
+  return entry ? Math.max(entry.introduced || 0, entry.learned || 0) : 0;
+}
+
 function learnedToday() {
   const entry = migrateHistory(loadHistory()).find(e => e.date === todayKey());
   return entry ? entry.learned : 0;
@@ -363,9 +390,9 @@ function updateGoalUI() {
 const SRS_INTERVALS = [0, 1, 3, 7, 14, 30];
 
 function addDays(dateStr, n) {
-  const d = new Date(dateStr + 'T00:00:00');
-  d.setDate(d.getDate() + n);
-  return d.toISOString().slice(0,10);
+  const [y, m, d] = dateStr.split('-').map(Number);
+  // полдень, а не полночь: переход на летнее время не может сдвинуть дату
+  return dateKey(new Date(y, m - 1, d + n, 12));
 }
 
 // Правильный ответ: слово поднимается на коробку выше, следующий показ позже
@@ -417,8 +444,10 @@ function resetProgress() {
   localStorage.removeItem('ox_history');
   known = new Set(); srs = {}; reviewDeck = []; correctStreak = 0;
   updateStreak();
+  updateReturning();
   if(mode === 'review') buildReviewDeck();
   newCard(0);
+  renderLessonStart();
   render();
 }
 
@@ -480,7 +509,7 @@ function currentStreak() {
   const todayEntry = byDate.get(todayKey());
   if(!todayEntry || !todayEntry.learned) check.setDate(check.getDate() - 1);
   for(let i = 0; i < 365; i++) {
-    const e = byDate.get(check.toISOString().slice(0,10));
+    const e = byDate.get(dateKey(check));
     if(e && e.learned > 0) { streak++; check.setDate(check.getDate() - 1); }
     else break;
   }
@@ -601,7 +630,7 @@ function drawGraph() {
   const locale = appLang === 'kz' ? 'kk' : 'ru';
   for(let i=6; i>=0; i--) {
     const d = new Date(); d.setDate(d.getDate()-i);
-    const key = d.toISOString().slice(0,10);
+    const key = dateKey(d);
     const entry = history.find(e=>e.date===key);
     days.push({label:d.toLocaleDateString(locale,{weekday:'short'}), learned: entry ? entry.learned : 0});
   }
@@ -685,7 +714,7 @@ function drawSrsStats() {
   const last7 = [];
   for(let i = 6; i >= 0; i--) {
     const d = new Date(); d.setDate(d.getDate() - i);
-    const key = d.toISOString().slice(0,10);
+    const key = dateKey(d);
     const entry = history.find(e => e.date === key);
     last7.push(entry ? entry.learned : 0);
   }
@@ -763,22 +792,29 @@ function getActiveDeck() {
 // Новые берём от простого к сложному (A1 → B2), внутри уровня — вперемешку,
 // чтобы урок не начинался каждый раз с одних и тех же слов.
 const LEVEL_ORDER = { A1: 0, A2: 1, B1: 2, B2: 3 };
+
+// Тасовка Фишера–Йетса на месте (sort(() => Math.random()-.5) даёт смещённый порядок)
+function shuffle(a) {
+  for(let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 function planSession() {
   const today = todayKey();
   const pool = WORDS.filter(inSelection);
   const due = pool.filter(w => srs[w[0]] && srs[w[0]].due <= today);
-  const remaining = Math.max(0, dailyGoal - learnedToday());
+  // Лимит — по ПОКАЗАННЫМ сегодня новым словам: иначе тот, кто ошибается,
+  // получал бы всё новые слова поверх растущей кучи повторений
+  const remaining = Math.max(0, dailyGoal - introducedToday());
   let fresh = [];
   if(remaining > 0) {
     const candidates = pool.filter(w => !srs[w[0]])
       .sort((a, b) => LEVEL_ORDER[getBaseLevel(a)] - LEVEL_ORDER[getBaseLevel(b)]);
     // берём запас из ближайших по сложности и тасуем — свежесть без потери порядка уровней
-    const window = candidates.slice(0, Math.max(remaining * 3, remaining));
-    for(let i = window.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [window[i], window[j]] = [window[j], window[i]];
-    }
-    fresh = window.slice(0, remaining);
+    fresh = shuffle(candidates.slice(0, remaining * 3)).slice(0, remaining);
   }
   sessionPlan = { fresh, due };
   return sessionPlan;
@@ -831,41 +867,55 @@ function renderLessonStart() {
 }
 
 function startSession() {
-  const plan = sessionPlan.fresh.length || sessionPlan.due.length ? sessionPlan : planSession();
+  // План пересчитываем при старте: вкладка могла пролежать открытой через полночь
+  const plan = planSession();
+  // Повторения и новые чередуются, чтобы урок не делился на два скучных блока.
+  // Если на сегодня всё закрыто — свободная тренировка по выбранным фильтрам.
   let d = [...plan.due, ...plan.fresh];
-  // Если на сегодня всё закрыто — даём свободную тренировку по выбранным фильтрам
-  if(d.length === 0) {
-    d = WORDS.filter(inSelection).slice();
-    for(let i = d.length - 1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [d[i],d[j]]=[d[j],d[i]]; }
-    d = d.slice(0, SESSION_MAX);
-  } else {
-    // повторения и новые чередуются, чтобы урок не делился на два скучных блока
-    for(let i = d.length - 1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [d[i],d[j]]=[d[j],d[i]]; }
-    d = d.slice(0, SESSION_MAX);
-  }
+  if(d.length === 0) d = WORDS.filter(inSelection);
+  d = shuffle(d.slice()).slice(0, SESSION_MAX);
   if(d.length === 0) return;
   sessionDeck = d;
   sessionActive = true;
   sessionNewLearned = 0;
+  sessionFresh = new Set(d.filter(w => !srs[w[0]]).map(w => w[0]));
+  sessionCounted = new Set();
+  sessionRequeues = new Map();
   correctStreak = 0;
   newCard(0);
   toggleLessonChrome();
   render();
-  const bar = document.getElementById('lesson-bar');
-  if(bar) bar.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  scrollToEl(document.getElementById('lesson-bar'));
 }
 
 function endSession() {
   sessionActive = false;
   sessionDeck = [];
   stopTimer();
+  updateReturning();
   toggleLessonChrome();
   renderLessonStart();
   render();
+  scrollToEl(document.getElementById('lesson-start'));
+}
+
+// У кого уже есть прогресс, тот пришёл заниматься, а не читать лендинг:
+// hero показываем только новичкам, остальным урок — первым экраном
+function updateReturning() {
+  document.body.classList.toggle('returning', Object.keys(srs).length > 0);
+}
+
+// Прокрутка к элементу с учётом липкой шапки, которая иначе его перекроет
+function scrollToEl(el) {
+  if(!el) return;
+  const header = document.querySelector('header');
+  const top = el.getBoundingClientRect().top + window.scrollY - (header ? header.offsetHeight : 0) - 12;
+  window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
 }
 
 // Переключает «оболочку»: во время урока не видно ничего лишнего
 function toggleLessonChrome() {
+  document.body.classList.toggle('in-lesson', sessionActive);
   const start = document.getElementById('lesson-start');
   const bar = document.getElementById('lesson-bar');
   if(start) start.hidden = sessionActive;
@@ -975,14 +1025,32 @@ function getCard() {
 // Засчитать слово как выученное (общая точка для всех режимов)
 function learnWord(w) {
   const isNew = !known.has(w[0]);
+  if(!srs[w[0]]) bumpIntroducedToday();
   srsCorrect(w[0]);
-  if(isNew) { bumpLearnedToday(); sessionNewLearned++; }
+  if(isNew) bumpLearnedToday();
+  // В итог урока идут только слова, которые были новыми в его начале
+  if(sessionActive && sessionFresh.has(w[0]) && !sessionCounted.has(w[0])) {
+    sessionCounted.add(w[0]);
+    sessionNewLearned++;
+  }
 }
 
 // Отметить ошибку (общая точка для всех режимов)
 function missWord(w) {
+  if(!srs[w[0]]) bumpIntroducedToday();
   srsWrong(w[0]);
   correctStreak = 0;
+  requeueInSession(w);
+}
+
+// Слово с ошибкой возвращается в этот же урок через несколько карточек —
+// как «шаги заучивания» в Anki: иначе до следующего урока его не увидеть
+function requeueInSession(w) {
+  if(!sessionActive) return;
+  const n = sessionRequeues.get(w[0]) || 0;
+  if(n >= REQUEUE_MAX) return;
+  sessionRequeues.set(w[0], n + 1);
+  sessionDeck.splice(Math.min(idx + 1 + REQUEUE_GAP, sessionDeck.length), 0, w);
 }
 
 function makeLevelPill(w) {
@@ -1039,9 +1107,29 @@ function renderFlash() {
   <div class="kbd-hint">${t('kbd_hint')}</div>`;
 }
 
+// Неправильные варианты: та же часть речи и соседний уровень — иначе ответ
+// угадывался по грамматике (к прилагательному шли существительные).
+// Совпадающие тексты ответов отсекаем: два одинаковых варианта сбивают с толку.
+function primaryPos(w) { return (w[1] || '').split(/[,/]/)[0].trim(); }
 function getRandomOpts(w, count) {
-  const others = WORDS.filter(x=>x[0]!==w[0] && inSelection(x));
-  return [...others.sort(()=>Math.random()-.5).slice(0,count-1), w].sort(()=>Math.random()-.5);
+  const pos = primaryPos(w), lvl = LEVEL_ORDER[getBaseLevel(w)];
+  const pool = shuffle(WORDS.filter(x => x !== w && inSelection(x)));
+  const tiers = [
+    x => primaryPos(x) === pos && Math.abs(LEVEL_ORDER[getBaseLevel(x)] - lvl) <= 1,
+    x => primaryPos(x) === pos,
+    () => true
+  ];
+  const taken = new Set([w[0].toLowerCase(), w[3], w[4]]);
+  const picked = [];
+  for(const fits of tiers) {
+    for(const x of pool) {
+      if(picked.length === count - 1) break;
+      if(!fits(x) || taken.has(x[0].toLowerCase()) || taken.has(x[3]) || taken.has(x[4])) continue;
+      picked.push(x);
+      taken.add(x[0].toLowerCase()); taken.add(x[3]); taken.add(x[4]);
+    }
+  }
+  return shuffle([...picked, w]);
 }
 
 // Тест не пройден (таймаут): подсветить правильный ответ, слово — на повторение
@@ -1391,8 +1479,9 @@ function startHeroRotation() {
   const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if(reduce) return; // не крутим карусель при reduced-motion
   heroTimer = setInterval(() => {
-    // Крутим, только пока hero на экране
-    if(window.scrollY < window.innerHeight) { heroIdx++; renderHero(true); }
+    // Крутим, только пока hero показан (новичку) и на экране
+    const hero = document.querySelector('.hero');
+    if(hero && hero.offsetParent !== null && window.scrollY < window.innerHeight) { heroIdx++; renderHero(true); }
   }, 4200);
 }
 
@@ -1632,6 +1721,7 @@ paintIcons();
 updateStreak();
 updateUI();
 buildDeck();
+updateReturning();
 toggleLessonChrome();
 renderLessonStart();
 startHeroRotation();

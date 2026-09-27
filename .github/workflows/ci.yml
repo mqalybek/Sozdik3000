@@ -31,4 +31,8 @@ jobs:
       - name: Install Chromium browser
         run: npx playwright install chromium --with-deps
       - name: Run smoke tests
+        # Часовой пояс пользователей: к востоку от UTC раньше ломались даты повторения.
+        # Отдельные проверки внутри теста гоняют ещё и Asia/Almaty и America/New_York.
+        env:
+          TZ: Asia/Almaty
         run: node tools/smoke-test.js
