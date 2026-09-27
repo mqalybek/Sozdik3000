@@ -127,15 +127,16 @@ function check(name, cond, extra) {
 
   console.log('— Проценты и фильтры');
   await page.evaluate(() => { endSession(); setMode('flash'); });
-  // Оставляем только маленькую категорию — процент не должен превышать 100
+  // Оставляем один уровень — процент не должен превышать 100
   await page.evaluate(() => {
-    activeCats = new Set(['cat_edu']);
+    activeLevels = new Set(['B2']);
     buildDeck();
   });
   await page.waitForTimeout(100);
   const pct = parseInt(await page.textContent('#hs-pct'));
   check('процент ≤ 100%', pct <= 100, pct);
-  check('план учитывает фильтр', await page.evaluate(() => planSession().fresh.every(w => getCat(w) === 'cat_edu')));
+  check('план учитывает фильтр уровня', await page.evaluate(() => planSession().fresh.every(w => getBaseLevel(w) === 'B2')));
+  check('фильтра категорий в интерфейсе нет', await page.evaluate(() => !document.getElementById('cat-filters')));
 
   console.log('— Интервальное повторение (SRS)');
   const srsCheck = await page.evaluate(() => {
@@ -200,13 +201,19 @@ function check(name, cond, extra) {
   check('v1 {known, repeat} мигрирует в SRS', migCheck);
 
   console.log('— Шторка настроек');
-  await page.evaluate(() => { activeCats = new Set(['cat_core','cat_people','cat_home','cat_edu','cat_travel','cat_food','cat_health','cat_nature','cat_business','cat_tech','cat_art','cat_sport']); buildDeck(); });
-  await page.click('#sheet-open-btn').catch(() => page.evaluate(() => openSheet()));
+  await page.evaluate(() => { activeLevels = new Set(['A1','A2','B1','B2']); buildDeck(); });
+  await page.click('.ls-foot .ghost-btn');
   await page.waitForTimeout(350);
   check('шторка открывается', await page.$eval('#sheet', el => !el.hidden));
-  await page.evaluate(() => closeSheet());
+  check('фокус перешёл в шторку', await page.evaluate(() => !!document.activeElement.closest('#sheet')));
+  check('фон недоступен (inert)', await page.evaluate(() => document.getElementById('app').inert && document.querySelector('header').inert));
+  for(let i = 0; i < 30; i++) await page.keyboard.press('Tab');
+  check('Tab не уводит фокус за шторку', await page.evaluate(() => !!document.activeElement.closest('#sheet')));
+  await page.keyboard.press('Escape');
   await page.waitForTimeout(350);
-  check('шторка закрывается', await page.$eval('#sheet', el => el.hidden));
+  check('шторка закрывается по Escape', await page.$eval('#sheet', el => el.hidden));
+  check('фокус вернулся на кнопку настроек', await page.evaluate(() => document.activeElement.matches('.ls-foot .ghost-btn')));
+  check('фон снова доступен', await page.evaluate(() => !document.getElementById('app').inert));
 
   console.log('— Дневная цель');
   const goalLabel = await page.textContent('#goal-label');
@@ -220,10 +227,16 @@ function check(name, cond, extra) {
   check('план пересчитан под новую цель', await page.evaluate(() => { closeSheet(); return planSession().fresh.length <= 50; }));
 
   console.log('— Сохранение настроек');
-  await page.evaluate(() => setAppLang('ru'));
+  await page.evaluate(() => { setAppLang('ru'); setMode('quiz'); });
   await page.reload();
   await page.waitForTimeout(300);
   check('язык сохранился после перезагрузки', await page.evaluate(() => appLang === 'ru'));
+  check('режим сохранился после перезагрузки', await page.evaluate(() => mode === 'quiz' && document.getElementById('tab-quiz').classList.contains('active')));
+  check('подпись кнопки-иконки на языке интерфейса (рус)', await page.$eval('#lb-exit', el => el.getAttribute('aria-label') === 'Завершить урок'));
+  await page.evaluate(() => setAppLang('kz'));
+  check('подпись кнопки-иконки на языке интерфейса (каз)', await page.$eval('#lb-exit', el => el.getAttribute('aria-label') === 'Сабақты аяқтау'));
+  check('у кнопок с видимым текстом нет aria-label', await page.evaluate(() => !document.querySelector('#sound-btn[aria-label], #graph-btn[aria-label], .ls-foot .ghost-btn[aria-label]')));
+  check('превью ссылки: абсолютный og:image', await page.$eval('meta[property="og:image"]', el => /^https:\/\//.test(el.content)));
   check('прогресс (SRS) сохранился', await page.evaluate(() => known.has('apple') && srs['banana'] && srs['banana'].box === 0));
 
   console.log('— Структура: урок первым для постоянных');
@@ -234,7 +247,7 @@ function check(name, cond, extra) {
   console.log('— Урок: логика');
   const ll = await page.evaluate(() => {
     localStorage.removeItem('ox_history'); localStorage.removeItem('ox_progress');
-    srs = {}; known = new Set(); setDailyGoal(10);
+    srs = {}; known = new Set(); setDailyGoal(10); setMode('flash');
     // Всё «не знаю»: следующий урок не добавляет новых слов поверх повторений
     startSession(); let g = 0;
     while(idx < sessionDeck.length && g++ < 100) { if(!flipped) flipCard(); markRepeat(); }

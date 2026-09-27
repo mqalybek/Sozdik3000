@@ -2,7 +2,6 @@
 let appLang = 'kz'; // Default: Kazakh
 let mode = 'flash';
 let activeLevels = new Set(['A1','A2','B1','B2']);
-let activeCats = new Set(['cat_core','cat_people','cat_home','cat_edu','cat_travel','cat_food','cat_health','cat_nature','cat_business','cat_tech','cat_art','cat_sport']);
 let deck = [];
 let reviewDeck = [];      // снапшот колоды повторения: не меняется при удалении слов из repeat
 let idx = 0;
@@ -37,17 +36,12 @@ const UI_TEXT = {
   header_known: { ru: 'Знаю', kz: 'Білемін' },
   header_progress: { ru: 'Прогресс', kz: 'Прогресс' },
   header_streak: { ru: 'Дней подряд', kz: 'Қатарынан күн' },
-  hero_title: { ru: 'Выучи английский<br>раз и навсегда', kz: 'Ағылшын тілін<br>біржолата үйреніңіз' },
   hero_subtitle: { ru: '3000 самых важных английских слов с переводом на казахский и русский. Короткий урок каждый день: карточки, тест или ввод — и интервальное повторение.', kz: 'Ағылшын тілінің ең маңызды 3000 сөзі қазақша және орысша аудармасымен. Күн сайын қысқа сабақ: карталар, тест немесе жазу — және аралықпен қайталау.' },
   btn_start: { ru: 'Начать урок →', kz: 'Сабақты бастау →' },
   lvl_a1: { ru: 'A1 — Начальный', kz: 'A1 — Бастапқы' },
   lvl_a2: { ru: 'A2 — Элементарный', kz: 'A2 — Қарапайым' },
   lvl_b1: { ru: 'B1 — Средний', kz: 'B1 — Орташа' },
   lvl_b2: { ru: 'B2 — Выше среднего', kz: 'B2 — Орташадан жоғары' },
-  tab_flash: { ru: 'Карточки', kz: 'Флеш-карталар' },
-  tab_quiz: { ru: 'Тест 4 варианта', kz: 'Тест 4 нұсқа' },
-  tab_type: { ru: 'Введи перевод', kz: 'Аударманы жаз' },
-  tab_review: { ru: 'Повторение', kz: 'Қайталау' },
   tab_flash_short: { ru: 'Карточки', kz: 'Карталар' },
   tab_quiz_short: { ru: 'Тест', kz: 'Тест' },
   tab_type_short: { ru: 'Ввод', kz: 'Жазу' },
@@ -57,7 +51,6 @@ const UI_TEXT = {
   ls_new: { ru: 'новых', kz: 'жаңа сөз' },
   ls_due: { ru: 'повторить', kz: 'қайталау' },
   ls_start: { ru: 'Начать урок', kz: 'Сабақты бастау' },
-  ls_continue: { ru: 'Продолжить урок', kz: 'Сабақты жалғастыру' },
   ls_minutes: { ru: 'мин', kz: 'мин' },
   ls_all_done: { ru: 'На сегодня всё пройдено', kz: 'Бүгінге бәрі орындалды' },
   ls_extra: { ru: 'Позаниматься ещё', kz: 'Тағы жаттығу' },
@@ -68,33 +61,16 @@ const UI_TEXT = {
   done_again: { ru: 'Ещё урок', kz: 'Тағы сабақ' },
   done_finish: { ru: 'Завершить', kz: 'Аяқтау' },
   aria_exit: { ru: 'Завершить урок', kz: 'Сабақты аяқтау' },
+  aria_close: { ru: 'Закрыть', kz: 'Жабу' },
+  aria_mode: { ru: 'Режим тренировки', kz: 'Жаттығу режимі' },
+  btn_intro_skip: { ru: 'Пропустить ✕', kz: 'Өткізу ✕' },
 
   btn_settings: { ru: 'Настройки', kz: 'Параметрлер' },
   lbl_goal: { ru: 'Цель на день', kz: 'Күндік мақсат' },
   lbl_goal_today: { ru: 'Сегодня пройдено', kz: 'Бүгін өтілді' },
   lbl_stats: { ru: 'Статистика', kz: 'Статистика' },
   lbl_data: { ru: 'Данные', kz: 'Деректер' },
-  scope_all_cats: { ru: 'все категории', kz: 'барлық санат' },
-  scope_cats: { ru: 'категорий', kz: 'санат' },
   lbl_level: { ru: 'Уровень', kz: 'Деңгей' },
-  lbl_cat: { ru: 'Категории', kz: 'Категориялар' },
-  cat_core: { ru: 'Основные', kz: 'Негізгі' },
-  cat_people: { ru: 'Люди', kz: 'Адамдар' },
-  cat_home: { ru: 'Дом', kz: 'Үй' },
-  cat_edu: { ru: 'Образование', kz: 'Білім' },
-  cat_travel: { ru: 'Путешествия', kz: 'Саяхат' },
-  cat_food: { ru: 'Еда', kz: 'Тамақ' },
-  cat_health: { ru: 'Здоровье', kz: 'Денсаулық' },
-  cat_nature: { ru: 'Природа', kz: 'Табиғат' },
-  cat_business: { ru: 'Бизнес', kz: 'Бизнес' },
-  cat_tech: { ru: 'Технологии', kz: 'IT/Ғылым' },
-  cat_art: { ru: 'Искусство', kz: 'Өнер' },
-  cat_sport: { ru: 'Спорт', kz: 'Спорт' },
-  btn_shuffle: { ru: 'Перемешать', kz: 'Араластыру' },
-  stat_total: { ru: 'Всего', kz: 'Барлығы' },
-  stat_known: { ru: 'Знаю', kz: 'Білемін' },
-  stat_repeat: { ru: 'Повторить', kz: 'Қайталау' },
-  stat_progress: { ru: 'Прогресс', kz: 'Прогресс' },
   btn_graph: { ru: 'График прогресса', kz: 'Прогресс графигі' },
   btn_graph_hide: { ru: 'Скрыть график', kz: 'Графикті жасыру' },
   btn_sound_on: { ru: 'Звук: вкл', kz: 'Дыбыс: қосулы' },
@@ -139,19 +115,15 @@ const UI_TEXT = {
   fb_ans_post: { ru: '</b>', kz: '</b>' },
   empty_review: { ru: 'На сегодня нет слов для повторения.<br>Учи новые слова или возвращайся завтра!', kz: 'Бүгінге қайталайтын сөздер жоқ.<br>Жаңа сөздер үйреніңіз немесе ертең келіңіз!' },
   empty_level: { ru: 'Нет слов для выбранных уровней.', kz: 'Таңдалған деңгейлер үшін сөздер жоқ.' },
-  res_words_learned: { ru: 'слов изучено!', kz: 'сөз жатталды!' },
   res_repeat: { ru: 'Повторить:', kz: 'Қайталау:' },
   res_words: { ru: 'слов', kz: 'сөз' },
   res_passed: { ru: 'Пройдено:', kz: 'Өтілді:' },
   res_cards: { ru: 'карточек', kz: 'карта' },
-  btn_restart: { ru: 'Начать заново', kz: 'Қайтадан бастау' },
-  btn_repeat_errs: { ru: 'Повторить ошибки', kz: 'Қателерді қайталау' },
   kbd_hint: { ru: 'Пробел — перевернуть · 1/2 — ответ · ←/→ — навигация', kz: 'Бос орын — аудару · 1/2 — жауап · ←/→ — навигация' },
-  goal_today: { ru: 'Сегодня:', kz: 'Бүгін:' },
   goal_select_title: { ru: 'Цель на день (слов)', kz: 'Күндік мақсат (сөз)' },
   goal_reached: { ru: 'Цель дня достигнута!', kz: 'Күндік мақсат орындалды!' },
-  btn_export: { ru: '⬇ Экспорт', kz: '⬇ Экспорт' },
-  btn_import: { ru: '⬆ Импорт', kz: '⬆ Импорт' },
+  btn_export: { ru: 'Экспорт', kz: 'Экспорт' },
+  btn_import: { ru: 'Импорт', kz: 'Импорт' },
   confirm_import: { ru: 'Импорт заменит текущий прогресс. Продолжить?', kz: 'Импорт ағымдағы прогресті ауыстырады. Жалғастыру керек пе?' },
   import_ok: { ru: 'Прогресс импортирован!', kz: 'Прогресс импортталды!' },
   import_err: { ru: 'Не удалось прочитать файл. Это точно экспорт Sózdik 3000?', kz: 'Файлды оқу мүмкін болмады. Бұл Sózdik 3000 экспорты ма?' },
@@ -172,7 +144,6 @@ const UI_TEXT = {
   hero_eyebrow:  { ru: 'тренажёр · 3000 слов', kz: 'жаттықтырғыш · 3000 сөз' },
   btn_intro:     { ru: 'Заставка', kz: 'Кіріспе' },
   btn_share:     { ru: 'Поделиться', kz: 'Бөлісу' },
-  share_eyebrow: { ru: 'МОЙ ПРОГРЕСС', kz: 'МЕНІҢ ПРОГРЕСІМ' },
   share_learned: { ru: 'слов выучено', kz: 'сөз жатталды' },
   share_streak:  { ru: 'дней подряд', kz: 'күн қатарынан' },
   share_done:    { ru: 'пройдено', kz: 'аяқталды' },
@@ -195,19 +166,6 @@ let heroTimer = null;
 // ===== КАСТОМНЫЕ ЛИНЕЙНЫЕ ИКОНКИ (вместо эмодзи) =====
 // Единый стиль: обводка currentColor, viewBox 24, без заливки
 const ICONS = {
-  // категории
-  core:    '<path d="M4 5h16v10H9l-4 4v-4H4z"/>',
-  people:  '<circle cx="9" cy="8" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><path d="M16 5.5a3 3 0 0 1 0 5.8"/><path d="M17.5 13.2a5.5 5.5 0 0 1 3 4.8"/>',
-  home:    '<path d="M4 11l8-6 8 6"/><path d="M6 10v9h12v-9"/><path d="M10 19v-5h4v5"/>',
-  edu:     '<path d="M12 5l9 4-9 4-9-4 9-4z"/><path d="M6 11v4c0 1.2 2.7 2.6 6 2.6s6-1.4 6-2.6v-4"/><path d="M21 9v4"/>',
-  travel:  '<path d="M3 11l17-6-6 17-3-7-8-4z"/>',
-  food:    '<path d="M8 3v18"/><path d="M5.5 3v4.5a2.5 2.5 0 0 0 5 0V3"/><path d="M16.5 3c-1.3 0-2 2-2 4.6s.8 4 2 4 2-1.4 2-4-.7-4.6-2-4.6z"/><path d="M16.5 11.6V21"/>',
-  health:  '<path d="M3 12h4l2-5 3 10 2.5-7H21"/>',
-  nature:  '<path d="M5 19c0-8 6-13 14-14 1 8-5 15-14 14z"/><path d="M9 15c2-3.5 4.5-5 8-6"/>',
-  business:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5.5A2.5 2.5 0 0 1 10.5 3h3A2.5 2.5 0 0 1 16 5.5V7"/><path d="M3 13h18"/>',
-  tech:    '<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/>',
-  art:     '<path d="M3 21c0-2.6 1.6-4 3.4-4 1.4 0 2.4 1 2.4 2.3S7.8 21 6 21H3z"/><path d="M9 16.5L17.5 8a2.1 2.1 0 0 1 3 3L12 19.5"/>',
-  sport:   '<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5c3.2 3 3.2 14 0 17"/><path d="M3.5 12h17"/>',
   // режимы
   flash:   '<rect x="4" y="7" width="13" height="13" rx="2"/><path d="M8 7V5.5A1.5 1.5 0 0 1 9.5 4H19a1.5 1.5 0 0 1 1.5 1.5V15"/>',
   quiz:    '<path d="M4 7h7"/><path d="M4 12h7"/><path d="M4 17h7"/><path d="M14.5 7.5l1.5 1.5L19.5 5.5"/><path d="M14.5 16l1.5 1.5L19.5 14"/>',
@@ -260,6 +218,10 @@ function updateUI() {
   document.querySelectorAll('[data-i18n]').forEach(el => {
     el.innerHTML = t(el.getAttribute('data-i18n'));
   });
+  // Подписи только для кнопок-иконок без видимого текста — на языке интерфейса
+  document.querySelectorAll('[data-i18n-aria]').forEach(el => {
+    el.setAttribute('aria-label', t(el.getAttribute('data-i18n-aria')));
+  });
   document.documentElement.lang = appLang === 'kz' ? 'kk' : 'ru';
   // Текст кнопок пишем в .btn-tx, чтобы не затирать иконку
   const setBtn = (id, text) => {
@@ -285,7 +247,7 @@ function updateUI() {
 
 // ===== НАСТРОЙКИ =====
 function saveSettings() {
-  localStorage.setItem('ox_settings', JSON.stringify({ lang: appLang, sound: soundOn, timer: timerOn, goal: dailyGoal }));
+  localStorage.setItem('ox_settings', JSON.stringify({ lang: appLang, sound: soundOn, timer: timerOn, goal: dailyGoal, mode: PRACTICE_MODES.includes(mode) ? mode : 'flash' }));
 }
 function loadSettings() {
   try {
@@ -294,6 +256,7 @@ function loadSettings() {
     if(typeof s.sound === 'boolean') soundOn = s.sound;
     if(typeof s.timer === 'boolean') timerOn = s.timer;
     if([10,20,50,100].includes(s.goal)) dailyGoal = s.goal;
+    if(PRACTICE_MODES.includes(s.mode)) mode = s.mode;
   } catch(e) { /* повреждённые настройки — остаются значения по умолчанию */ }
   const btnKz = document.getElementById('ls-kz');
   const btnRu = document.getElementById('ls-ru');
@@ -380,7 +343,7 @@ function updateGoalUI() {
   const fill = document.getElementById('goal-fill');
   if(!lbl || !fill) return;
   const n = learnedToday();
-  lbl.textContent = `${t('goal_today')} ${n} / ${dailyGoal}`;
+  lbl.textContent = `${n} / ${dailyGoal}`;  // подпись «Сегодня пройдено» стоит рядом в шторке
   fill.style.transform = 'scaleX(' + Math.min(1, n / dailyGoal) + ')';
   fill.classList.toggle('done', n >= dailyGoal);
 }
@@ -568,7 +531,7 @@ function stopTimer() { clearInterval(timerInterval); }
 function updateTimerDisplay() {
   const d = document.getElementById('timer-display');
   if(!d) return;
-  const color = timerSeconds <= 3 ? 'var(--red)' : timerSeconds <= 6 ? 'var(--amber)' : 'var(--green)';
+  const color = timerSeconds <= 3 ? 'var(--red)' : timerSeconds <= 6 ? 'var(--amber-text)' : 'var(--green)';
   d.textContent = timerSeconds + 's';
   d.style.color = color; d.style.borderColor = color;
 }
@@ -662,7 +625,7 @@ function drawGraph() {
       {label:t('graph_stat_known'),val:known.size,color:'var(--green)'},
       {label:t('graph_stat_left'),val:total-known.size,color:'var(--amber)'}
     ].map(s=>`<div style="background:var(--surface2);border-radius:10px;padding:10px;text-align:center">
-      <div style="font-size:20px;font-weight:700;color:${s.color};font-family:Syne,sans-serif">${s.val}</div>
+      <div style="font-size:20px;font-weight:700;color:${s.color};font-family:var(--font-mono)">${s.val}</div>
       <div style="font-size:11px;color:var(--muted);margin-top:2px">${s.label}</div></div>`).join('');
   }
 }
@@ -773,12 +736,10 @@ function getBaseLevel(w) {
   return 'B2';
 }
 
-function getCat(w) {
-  return w.length > 5 ? w[5] : 'cat_core';
-}
-
 function inSelection(w) {
-  return activeLevels.has(getBaseLevel(w)) && activeCats.has(getCat(w));
+  // Фильтр категорий убран: 91% слов в «Негізгі», остальные темы — по 17–34 слова.
+  // Поле категории в data.js оставлено — пригодится, когда темы разметят по-настоящему.
+  return activeLevels.has(getBaseLevel(w));
 }
 
 // ===== КОЛОДЫ =====
@@ -859,10 +820,7 @@ function renderLessonStart() {
   if(scope) {
     const lv = ['A1','A2','B1','B2'].filter(l => activeLevels.has(l));
     const lvTxt = lv.length === 4 ? 'A1–B2' : lv.join(', ');
-    const catTxt = activeCats.size === 12
-      ? t('scope_all_cats')
-      : activeCats.size + ' ' + t('scope_cats');
-    scope.textContent = lvTxt + ' · ' + catTxt;
+    scope.textContent = lvTxt;
   }
 }
 
@@ -925,18 +883,34 @@ function toggleLessonChrome() {
 }
 
 // ===== ШТОРКА НАСТРОЕК =====
+// Шторка модальная по-настоящему: фон inert (ни фокуса, ни кликов, ни скринридера),
+// фокус уходит в шторку и возвращается на кнопку, которая её открыла
+let sheetOpener = null;
+function setBackgroundInert(on) {
+  ['header', '.hero', '#app', 'footer'].forEach(sel => {
+    const el = document.querySelector(sel);
+    if(el) el.inert = on;
+  });
+}
 function openSheet() {
   const sh = document.getElementById('sheet'), sc = document.getElementById('scrim');
   if(!sh) return;
+  sheetOpener = document.activeElement;
   sc.hidden = false; sh.hidden = false;
+  setBackgroundInert(true);
   requestAnimationFrame(() => { sc.classList.add('open'); sh.classList.add('open'); });
   document.body.style.overflow = 'hidden';
+  const closeBtn = sh.querySelector('.sheet-head button');
+  if(closeBtn) closeBtn.focus({ preventScroll: true });
 }
 function closeSheet() {
   const sh = document.getElementById('sheet'), sc = document.getElementById('scrim');
   if(!sh) return;
   sh.classList.remove('open'); sc.classList.remove('open');
   document.body.style.overflow = '';
+  setBackgroundInert(false);
+  if(sheetOpener && document.contains(sheetOpener)) sheetOpener.focus({ preventScroll: true });
+  sheetOpener = null;
   setTimeout(() => { sh.hidden = true; sc.hidden = true; }, 220);
   renderLessonStart();
 }
@@ -964,13 +938,6 @@ function buildDeck() {
   render();
 }
 
-function shuffleDeck() {
-  const d = getActiveDeck();
-  for(let i=d.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[d[i],d[j]]=[d[j],d[i]];}
-  newCard(0);
-  render();
-}
-
 function toggleLevel(l) {
   if(activeLevels.has(l)) { if(activeLevels.size>1) activeLevels.delete(l); }
   else activeLevels.add(l);
@@ -980,27 +947,22 @@ function toggleLevel(l) {
   buildDeck();
 }
 
-function toggleCat(c) {
-  if(activeCats.has(c)) { if(activeCats.size>1) activeCats.delete(c); }
-  else activeCats.add(c);
-  const btn = document.getElementById('cbtn-'+c);
-  if(btn) {
-    if(activeCats.has(c)) btn.classList.add('active');
-    else btn.classList.remove('active');
-  }
-  buildDeck();
+// Режимы, которые пользователь выбирает сам (повторение идёт внутри урока)
+const PRACTICE_MODES = ['flash', 'quiz', 'type'];
+function syncModeTabs() {
+  PRACTICE_MODES.forEach(x => {
+    const tab = document.getElementById('tab-'+x);
+    if(!tab) return;
+    tab.classList.toggle('active', x===mode);
+    tab.setAttribute('aria-selected', x===mode ? 'true' : 'false');
+  });
 }
-
 function setMode(m) {
   mode = m;
   if(m === 'review') buildReviewDeck();
   newCard(0);
-  ['flash','quiz','type','review'].forEach(x => {
-    const tab = document.getElementById('tab-'+x);
-    if(!tab) return;
-    tab.classList.toggle('active', x===m);
-    tab.setAttribute('aria-selected', x===m ? 'true' : 'false');
-  });
+  syncModeTabs();
+  if(PRACTICE_MODES.includes(m)) saveSettings();
   render();
 }
 
@@ -1157,7 +1119,7 @@ function renderQuiz() {
   <div class="quiz-panel">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
       <div class="quiz-eyebrow" style="margin-bottom:0">${qLabel}</div>
-      ${timerOn ? `<div id="timer-display" style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;min-width:40px;text-align:center;border:2px solid var(--green);border-radius:8px;padding:2px 8px;color:var(--green);transition:color .3s,border-color .3s">${timerSeconds}s</div>` : ''}
+      ${timerOn ? `<div id="timer-display" style="font-family:var(--font-mono);font-size:18px;font-weight:700;min-width:40px;text-align:center;border:2px solid var(--green);border-radius:8px;padding:2px 8px;color:var(--green);transition:color .3s,border-color .3s">${timerSeconds}s</div>` : ''}
     </div>
     <div class="quiz-q">${esc(question)}</div>
     <div class="quiz-meta">${cardDir && getIPA(w) ? `<span class="card-ipa">${esc(getIPA(w))}</span> · ` : ''}${esc(w[1])} · ${esc(w[2])}</div>
@@ -1374,7 +1336,6 @@ function skipType() {
 function goBack() {
   if(idx > 0) { newCard(idx - 1); render(); }
 }
-function restart() { newCard(0); render(); }
 function scrollToApp() { document.getElementById('app').scrollIntoView({behavior:'smooth'}); return false; }
 
 // ===== ИНТРО (Лондон → книга Sózdik) =====
@@ -1720,6 +1681,7 @@ loadProgress();
 paintIcons();
 updateStreak();
 updateUI();
+syncModeTabs();
 buildDeck();
 updateReturning();
 toggleLessonChrome();
